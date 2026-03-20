@@ -1,0 +1,11 @@
+# Henkilökohtaiset tiedostot – ei versionhallintaan
+samples/
+
+# OS-tiedostot
+.DS_Store
+Thumbs.db
+
+# Editorin tiedostot
+.vscode/
+*.swp
+*.swo
