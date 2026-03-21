@@ -6,9 +6,10 @@
 import { readFileSync } from 'fs';
 import { parseAccountStatement } from './parser.js';
 import { calculateCfdTax } from './tax-calculator.js';
+import { fetchEcbRates, getRequiredDateRange } from './ecb-rates.js';
 
-const FILE       = 'samples/etoro-account-statement-1-1-2025-12-31-2025.xlsx';
-const RATES_FILE = 'data/ecb-usd-eur-rates.json';
+const FILE = 'samples/etoro-account-statement-1-1-2025-12-31-2025.xlsx';
+const RATES_FILE_FALLBACK = 'data/ecb-usd-eur-rates.json';
 
 let passed = 0, failed = 0;
 
@@ -22,14 +23,23 @@ function assert(condition, message) {
     }
 }
 
-function run() {
-    console.log(`\nLuetaan: ${FILE}`);
-    console.log(`Kurssit:  ${RATES_FILE}\n`);
+async function run() {
+    console.log(`\nLuetaan: ${FILE}\n`);
 
     const buffer = readFileSync(FILE);
     const { closedPositions } = parseAccountStatement(buffer.buffer);
 
-    const ecbRates = JSON.parse(readFileSync(RATES_FILE, 'utf-8')).rates;
+    const range = getRequiredDateRange(closedPositions, []);
+    let ecbRates;
+    try {
+        console.log(`Haetaan EKP-kurssit ${range.startDate} – ${range.endDate}...`);
+        ecbRates = await fetchEcbRates(range.startDate, range.endDate);
+        console.log(`Haettu ${Object.keys(ecbRates).length} päiväkurssia EKP API:sta.\n`);
+    } catch (e) {
+        console.warn(`EKP API ei saatavilla (${e.message}) – käytetään lokaalitiedostoa.\n`);
+        ecbRates = JSON.parse(readFileSync(RATES_FILE_FALLBACK, 'utf-8')).rates;
+    }
+
     const summary  = calculateCfdTax(closedPositions, ecbRates);
 
     // --- Tulosta yhteenveto ---
@@ -120,4 +130,4 @@ function run() {
     console.log(`\n=== Tulos: ${passed} OK, ${failed} FAIL ===\n`);
 }
 
-run();
+run().catch(err => { console.error('Virhe:', err); process.exit(1); });

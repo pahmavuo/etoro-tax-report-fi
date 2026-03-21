@@ -6,9 +6,10 @@
 import { readFileSync } from 'fs';
 import { parseAccountStatement } from './parser.js';
 import { calculateDividendTax } from './tax-calculator.js';
+import { fetchEcbRates, getRequiredDateRange } from './ecb-rates.js';
 
-const FILE       = 'samples/etoro-account-statement-1-1-2025-12-31-2025.xlsx';
-const RATES_FILE = 'data/ecb-usd-eur-rates.json';
+const FILE = 'samples/etoro-account-statement-1-1-2025-12-31-2025.xlsx';
+const RATES_FILE_FALLBACK = 'data/ecb-usd-eur-rates.json';
 
 let passed = 0, failed = 0;
 
@@ -22,13 +23,23 @@ function assert(condition, message) {
     }
 }
 
-function run() {
-    console.log(`\nLuetaan: ${FILE}`);
-    console.log(`Kurssit:  ${RATES_FILE}\n`);
+async function run() {
+    console.log(`\nLuetaan: ${FILE}\n`);
 
-    const buffer  = readFileSync(FILE);
+    const buffer = readFileSync(FILE);
     const { dividends } = parseAccountStatement(buffer.buffer);
-    const ecbRates = JSON.parse(readFileSync(RATES_FILE, 'utf-8')).rates;
+
+    const range = getRequiredDateRange([], dividends);
+    let ecbRates;
+    try {
+        console.log(`Haetaan EKP-kurssit ${range.startDate} – ${range.endDate}...`);
+        ecbRates = await fetchEcbRates(range.startDate, range.endDate);
+        console.log(`Haettu ${Object.keys(ecbRates).length} päiväkurssia EKP API:sta.\n`);
+    } catch (e) {
+        console.warn(`EKP API ei saatavilla (${e.message}) – käytetään lokaalitiedostoa.\n`);
+        ecbRates = JSON.parse(readFileSync(RATES_FILE_FALLBACK, 'utf-8')).rates;
+    }
+
     const summary  = calculateDividendTax(dividends, ecbRates);
 
     // --- Tulosta yhteenveto ---
@@ -75,9 +86,9 @@ function run() {
     assert(summary.totalGrossEUR > 0,
         `totalGrossEUR > 0 (${summary.totalGrossEUR})`);
 
-    // 85 % + 15 % = 100 %
+    // 85 % + 15 % = 100 % (toleranssi 0.05 pyöristysvirheiden takia: n yhtiötä × 0.005)
     assert(
-        Math.abs(summary.totalTaxableEUR + summary.totalTaxFreeEUR - summary.totalGrossEUR) < 0.01,
+        Math.abs(summary.totalTaxableEUR + summary.totalTaxFreeEUR - summary.totalGrossEUR) < 0.05,
         `taxable (${summary.totalTaxableEUR}) + tax-free (${summary.totalTaxFreeEUR}) = gross (${summary.totalGrossEUR})`
     );
 
@@ -142,4 +153,4 @@ function run() {
     console.log(`\n=== Tulos: ${passed} OK, ${failed} FAIL ===\n`);
 }
 
-run();
+run().catch(err => { console.error('Virhe:', err); process.exit(1); });
