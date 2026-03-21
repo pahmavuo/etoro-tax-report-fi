@@ -9,7 +9,7 @@
     body { background: #f0f2f5; }
     @media print {
       body { background: white; }
-      #upload-section, #spinner, #error-box, #pdf-btn { display: none !important; }
+      #upload-section, #spinner, #error-box, #pdf-btn, #tietoja-modal { display: none !important; }
       #results { display: block !important; }
       .card { break-inside: avoid; box-shadow: none !important; border: 1px solid #dee2e6 !important; }
       .section-card { margin-bottom: 1rem !important; }
@@ -43,6 +43,77 @@
     <div class="text-center mb-5">
       <h1 class="fw-bold">eToro Veroilmoitusohje</h1>
       <p class="text-muted">Lataa eToro Account Statement Excel-tiedosto, niin lasken verotiedot automaattisesti.</p>
+      <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#tietoja-modal">
+        ℹ️ Tietoja sovelluksesta
+      </button>
+    </div>
+
+    <!-- Tietoja-modaali -->
+    <div class="modal fade" id="tietoja-modal" tabindex="-1">
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title fw-bold">eToro Veroilmoitusohje – Tietoja</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+
+            <h6 class="fw-bold">Miten haet Account Statementin eTorosta</h6>
+            <ol>
+              <li>Kirjaudu eToroon ja mene <strong>Settings → Account → Account Statement (View)</strong></li>
+              <li>Valitse haluamasi aikarajaus, esim. <em>Last Year</em></li>
+              <li>Luo raportti klikkaamalla <strong>Create</strong></li>
+              <li>Tallenna raportti klikkaamalla <strong>xls-ikonia</strong></li>
+              <li>Lataa tallennettu <code>.xlsx</code>-tiedosto tälle sivulle</li>
+            </ol>
+            <p class="text-muted small">Raportin voi tulostaa tai tallentaa PDF:ksi selaimen tulostustoiminnolla.</p>
+
+            <hr>
+            <h6 class="fw-bold">Mitä sovellus laskee</h6>
+            <table class="table table-sm table-bordered">
+              <thead class="table-light"><tr><th>Lomake</th><th>Sisältö</th></tr></thead>
+              <tbody>
+                <tr><td><strong>9A</strong></td><td>Osakekauppojen ja kryptovaluuttojen luovutusvoitot ja -tappiot</td></tr>
+                <tr><td><strong>7805</strong></td><td>CFD-sopimusten voitot (suorituslaji 2D)</td></tr>
+                <tr><td><strong>16B</strong></td><td>Ulkomaiset osingot ja lähdeveron hyvitys</td></tr>
+              </tbody>
+            </table>
+            <p>Valuuttamuunnos USD → EUR tehdään EKP:n päivittäisillä viitekursseilla kaupantekopäivältä.</p>
+
+            <hr>
+            <h6 class="fw-bold">Verotussäännöt (Suomi)</h6>
+            <p><strong>Osakekaupat ja kryptot – Lomake 9A</strong></p>
+            <ul>
+              <li>Voitto/tappio = myyntihinta − hankintameno (EKP-kurssilla muutettuna)</li>
+              <li>Tappiot ovat vähennyskelpoisia pääomatuloista (5 vuotta)</li>
+              <li><strong>Pienten myyntien vapautus (TVL 48 §):</strong> jos osakkeiden + kryptojen myyntihinnat yhteensä ≤ 1 000 €, voitot ovat verovapaita eikä tappioita voi vähentää</li>
+            </ul>
+            <p><strong>CFD-sopimukset – Lomake 7805</strong></p>
+            <ul>
+              <li>Vain voitot ilmoitetaan (suorituslaji 2D)</li>
+              <li><strong>Tappiot ovat kokonaan vähennyskelvoittomia (TVL 54 §)</strong></li>
+            </ul>
+            <p><strong>Osingot – Lomake 16B</strong></p>
+            <ul>
+              <li>Pörssilistatusta yhtiöstä: 85 % veronalaista, 15 % verovapaata (TVL 33a §)</li>
+              <li>Ilmoitetaan bruttomääräisinä euroina</li>
+              <li>Ulkomainen lähdevero hyvitetään Suomen verosta</li>
+            </ul>
+            <p><strong>Verokanta:</strong> 30 % (≤ 30 000 €) / 34 % (yli 30 000 €)</p>
+
+            <hr>
+            <h6 class="fw-bold">🔒 Tietosuoja</h6>
+            <p>Raportti muodostetaan täysin selaimessa – verotietojasi ei lähetetä mihinkään. Ainoa tieto joka lähtee ulos on eToron raportin tapahtumien aikaväli, jota käytetään EKP:n valuuttakurssien hakemiseen.</p>
+
+            <hr>
+            <p class="text-muted small mb-0"><strong>Vastuuvapauslauseke:</strong> Tämä sovellus on apuväline oman verolaskelman hahmottamiseen. Käyttäjä vastaa itse veroilmoituksensa oikeellisuudesta. Tarkista laskelmat ja tarvittaessa konsultoi veroasiantuntijaa.</p>
+
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Sulje</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Tiedoston lataus -->
@@ -478,5 +549,6 @@
       document.getElementById('error-box').style.display = 'none';
     }
   </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
