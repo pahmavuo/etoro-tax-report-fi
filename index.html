@@ -81,20 +81,9 @@
   </div>
 
   <script type="module">
-    import { parseAccountStatement } from './js/parser.js';
-    import { generateTaxReport }     from './js/tax-calculator.js';
-
-    // ── EKP-kurssit ladataan kerran sivun avautuessa ────────────────────────
-    let ecbRates = null;
-
-    async function loadEcbRates() {
-      const res = await fetch('./data/ecb-usd-eur-rates.json');
-      if (!res.ok) throw new Error('EKP-kurssitiedoston lataus epäonnistui');
-      const json = await res.json();
-      ecbRates = json.rates;
-    }
-
-    loadEcbRates().catch(err => showError('EKP-kurssien lataus epäonnistui: ' + err.message));
+    import { parseAccountStatement }              from './js/parser.js';
+    import { generateTaxReport }                 from './js/tax-calculator.js';
+    import { fetchEcbRates, getRequiredDateRange } from './js/ecb-rates.js';
 
     // ── Tiedoston valinta ────────────────────────────────────────────────────
     const input    = document.getElementById('file-input');
@@ -120,9 +109,10 @@
       document.getElementById('results').style.display = 'none';
 
       try {
-        if (!ecbRates) await loadEcbRates();
         const buffer = await file.arrayBuffer();
         const { closedPositions, dividends } = parseAccountStatement(buffer);
+        const range = getRequiredDateRange(closedPositions, dividends);
+        const ecbRates = await fetchEcbRates(range.startDate, range.endDate);
         const report = generateTaxReport(closedPositions, dividends, ecbRates);
         renderReport(report);
         document.getElementById('pdf-btn').style.display = 'block';
@@ -140,6 +130,7 @@
         renderHeader(r),
         renderYhteenveto(r.yhteenveto),
         renderLomake9A(r.lomake9A),
+        renderLomakeKrypto(r.lomakeKrypto),
         renderLomake7805(r.lomake7805),
         renderLomake16B(r.lomake16B),
         renderHuomiot(r.yhteenveto.huomiot),
@@ -169,6 +160,9 @@
     function renderYhteenveto(y) {
       const rows = [
         ['Osakkeet – verotettava tulo', y.osakkeetVeiotettavaTuloEUR],
+        ...(y.kryptotVeiotettavaTuloEUR !== undefined
+          ? [['Kryptovaluutat – verotettava tulo', y.kryptotVeiotettavaTuloEUR]]
+          : []),
         ['CFD-sopimukset – verotettava tulo', y.cfdVeiotettavaTuloEUR],
         ['Osingot – verotettava tulo (85 %)', y.osinkoVeiotettavaTuloEUR],
       ];
@@ -259,6 +253,52 @@
         <td class="ps-3">${label}</td>
         <td class="text-end pe-3 euro">${eur(val)}</td>
       </tr>`;
+    }
+
+    // ── Kryptovaluutat (Lomake 9A) ───────────────────────────────────────────
+    function renderLomakeKrypto(k) {
+      if (k.positiot.length === 0) return '';
+      if (!k.ilmoitettava) {
+        return `
+          <div class="card shadow-sm section-card status-skip">
+            <div class="card-body">
+              <div class="d-flex align-items-center gap-2">
+                <span class="fs-4">✅</span>
+                <div>
+                  <div class="fw-semibold">Lomake 9A – Kryptovaluuttojen luovutusvoitot ja -tappiot</div>
+                  <div class="text-muted small">${k.eiIlmoitetaSyy}</div>
+                  <div class="text-muted small mt-1">
+                    Myyntihinnat: ${eur(k.myyntihinnatYhteensaEUR)} &nbsp;·&nbsp;
+                    Voitot: ${eur(k.voitotYhteensaEUR)} &nbsp;·&nbsp;
+                    Tappiot: ${eur(k.tappiotYhteensaEUR)}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>`;
+      }
+      return `
+        <div class="card shadow-sm section-card status-fill">
+          <div class="card-header fw-semibold">📋 Lomake 9A – Kryptovaluuttojen luovutusvoitot ja -tappiot</div>
+          <div class="card-body p-0">
+            <table class="table table-sm mb-0">
+              <tbody>
+                ${row9A('Myyntihinnat yhteensä (9A kohta 2.1)', k.myyntihinnatYhteensaEUR)}
+                ${row9A('Hankintamenot yhteensä', k.hankintamenotYhteensaEUR)}
+                ${row9A('Voitot yhteensä', k.voitotYhteensaEUR)}
+                ${row9A('Tappiot yhteensä', k.tappiotYhteensaEUR)}
+                ${row9A('Verotettava luovutusvoitto (9A kohta 2.3)', k.verotettavaTuloEUR, true)}
+                ${k.vahennyskelponenTappioEUR < 0
+                  ? row9A('Vähennyskelpoinen tappio (9A kohta 2.4)', k.vahennyskelponenTappioEUR, true)
+                  : ''}
+              </tbody>
+            </table>
+          </div>
+          <div class="card-footer text-muted small">
+            eToro Account Statement liitetään ilmoitukseen (${k.positiot.length} positiota).
+            Kryptot ilmoitetaan OmaVerossa kohdassa "Virtuaalivaluuttojen luovutukset".
+          </div>
+        </div>`;
     }
 
     // ── Lomake 7805 ──────────────────────────────────────────────────────────
