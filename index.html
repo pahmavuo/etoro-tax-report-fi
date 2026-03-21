@@ -229,6 +229,12 @@
 
     // ── Yhteenveto ───────────────────────────────────────────────────────────
     function renderYhteenveto(y) {
+      const disclaimer = `
+        <p class="text-muted small mb-3">
+          Käyttäjä vastaa itse veroilmoituksensa oikeellisuudesta. Tarkista laskelmat ja
+          tarvittaessa konsultoi veroasiantuntijaa. Voit raportoida mahdolliset virheet
+          <a href="https://github.com/pahmavuo/etoro-tax-report-fi/issues" target="issues">täällä</a>.
+        </p>`;
       const rows = [
         ['Osakkeet – verotettava tulo', y.osakkeetVeiotettavaTuloEUR],
         ...(y.kryptotVeiotettavaTuloEUR !== undefined
@@ -272,7 +278,8 @@
               </tbody>
             </table>
           </div>
-        </div>`;
+        </div>
+        ${disclaimer}`;
     }
 
     // ── Lomake 9A ────────────────────────────────────────────────────────────
