@@ -1,6 +1,6 @@
 # eToro Tax Report
 
-Selainpohjainen työkalu suomalaisen veroilmoituksen täyttämiseen eToro-sijoitusalustan account statement -tiedoston pohjalta.
+Selainpohjainen työkalu suomalaisen veroilmoituksen täyttämiseen eToro-sijoitusalustan account statement -tiedoston pohjalta. Tehty Vibe koodaamalla Claude Codella.
 
 ## Mitä sovellus tekee
 
@@ -14,15 +14,16 @@ Lataa eToro:n Excel-tiedoston, laskee verotettavat tulot Suomen verosäännöste
 
 Valuuttamuunnos USD → EUR tehdään EKP:n päivittäisillä viitekursseilla, jotka haetaan automaattisesti tiedoston päivämäärävälin perusteella.
 
+Raportti muodostetaan täysin selaimessa eli omalla koneellasi. Verotietojasi ei lähetetä mihinkään. Ainoa tieto minkä tiedoistasi vuotaa ulos on eToron raportin tapahtumien aikaväli. Sitä käytetään USD -> EUR päiväkohtaisten valuuttamuunnoskurssien hakemiseen EKP:n palvelusta.
+
 ## Käyttö
 
-1. Avaa selainpalvelimelta tai aja lokaali palvelin:
-   ```
-   python3 -m http.server 8080
-   ```
-2. Avaa `http://localhost:8080` selaimessa
-3. Lataa eToro:n account statement (.xlsx) sivulle
-4. Sovellus laskee verot ja näyttää täytettävät lomakkeet
+1. Muodosta eToro Account Statement halumaltasi verovuodelta. Se löytyy eTorosta Settings -> Account -> Account Statement (View). Valitse haluamasi aikarajaus, esim Last Year.
+2. Luo raportti klikkaamalla Create-nappia.
+3. Tallenna raportti klikkaamalla xls-ikonia.
+4. Avaa sovellus osoitteessa https://pahmavuo.github.io/etoro-tax-report-fi/
+   Lataa eToro:n account statement (.xlsx) sivulle
+5. Sovellus laskee verot ja näyttää täytettävät lomakkeet
 
 Raportin voi tulostaa tai tallentaa PDF:ksi selaimen tulostustoiminnolla.
 
@@ -48,6 +49,7 @@ Raportin voi tulostaa tai tallentaa PDF:ksi selaimen tulostustoiminnolla.
 
 ## Tekninen toteutus
 
+- Toteutus tehty vibe koodammalla Claude Codella
 - **Täysin selainpohjainen** – ei build-työkaluja, ei npm-riippuvuuksia
 - Vanilla JavaScript ES-moduuleina
 - [SheetJS](https://sheetjs.com/) Excel-lukemiseen (CDN)
