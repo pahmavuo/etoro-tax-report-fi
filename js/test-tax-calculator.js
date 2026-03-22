@@ -52,7 +52,8 @@ async function run() {
     console.log(`  Voitot yhteensä:            ${summary.totalGainsEUR.toFixed(2)} €`);
     console.log(`  Tappiot yhteensä:           ${summary.totalLossesEUR.toFixed(2)} €`);
     console.log(`  Nettovoitto/-tappio:        ${summary.netGainLossEUR.toFixed(2)} €`);
-    console.log(`  Pienten myyntien vapautus:  ${summary.smallSalesExemption ? 'KYLLÄ' : 'EI'}`);
+    console.log(`  Voitot verovapaita:         ${summary.gainExemption ? 'KYLLÄ' : 'EI'}`);
+    console.log(`  Tappiot ei-väh.kelp.:       ${summary.lossNonDeductible ? 'KYLLÄ' : 'EI'}`);
     console.log(`  Verotettava tulo:           ${summary.taxableGainEUR.toFixed(2)} €`);
     console.log(`  Vähennyskelpoinen tappio:   ${summary.deductibleLossEUR.toFixed(2)} €`);
     console.log(`  Arvioitu vero:              ${summary.estimatedTaxEUR.toFixed(2)} €`);
@@ -92,16 +93,18 @@ async function run() {
     assert(summary.totalLossesEUR <= 0, `totalLossesEUR <= 0 (${summary.totalLossesEUR})`);
     assert(summary.estimatedTaxEUR >= 0, `estimatedTaxEUR >= 0 (${summary.estimatedTaxEUR})`);
 
-    assert(typeof summary.smallSalesExemption === 'boolean',
-        'smallSalesExemption on boolean');
+    assert(typeof summary.gainExemption === 'boolean',     'gainExemption on boolean');
+    assert(typeof summary.lossNonDeductible === 'boolean', 'lossNonDeductible on boolean');
 
-    if (summary.smallSalesExemption) {
-        assert(summary.taxableGainEUR === 0,    'Vapautus → taxableGainEUR === 0');
-        assert(summary.deductibleLossEUR === 0, 'Vapautus → deductibleLossEUR === 0');
+    if (summary.gainExemption) {
+        assert(summary.taxableGainEUR === 0,    'gainExemption → taxableGainEUR === 0');
+    }
+    if (summary.lossNonDeductible) {
+        assert(summary.deductibleLossEUR === 0, 'lossNonDeductible → deductibleLossEUR === 0');
     }
 
     // Verolaskennan oikeellisuus alle 30 000 €:n voitoilla
-    if (!summary.smallSalesExemption && summary.taxableGainEUR > 0 && summary.taxableGainEUR <= 30_000) {
+    if (!summary.gainExemption && summary.taxableGainEUR > 0 && summary.taxableGainEUR <= 30_000) {
         const expectedTax = Math.round(summary.taxableGainEUR * 0.30 * 100) / 100;
         assert(Math.abs(summary.estimatedTaxEUR - expectedTax) < 0.10,
             `Vero 30 % voitoista: odotettiin ${expectedTax.toFixed(2)} €, saatiin ${summary.estimatedTaxEUR.toFixed(2)} €`);

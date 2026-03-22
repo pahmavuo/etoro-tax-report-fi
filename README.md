@@ -32,7 +32,9 @@ Raportin voi tulostaa tai tallentaa PDF:ksi selaimen tulostustoiminnolla.
 ### Osakekaupat ja kryptot – Lomake 9A
 - Voitto/tappio = myyntihinta − hankintameno (EKP-kurssilla muutettuna)
 - Tappiot ovat vähennyskelpoisia pääomatuloista (5 vuotta)
-- **Pienten myyntien vapautus (TVL 48 §):** jos osakkeiden + kryptojen myyntihinnat yhteensä ≤ 1 000 €, voitot ovat verovapaita eikä tappioita voi vähentää
+- **TVL 48 §:** jos osakkeiden + kryptojen *myyntihinnat* yhteensä ≤ 1 000 €, voitot ovat verovapaita
+- **TVL 50 §:** jos osakkeiden + kryptojen *hankintamenot* yhteensä ≤ 1 000 €, tappiot ovat vähennyskelvottomia
+- Nämä ovat kaksi erillistä sääntöä – voitot voivat olla verovapaita vaikka tappiot olisivat vähennyskelpoisia
 
 ### CFD-sopimukset – Lomake 7805
 - Vain voitot ilmoitetaan (suorituslaji 2D)

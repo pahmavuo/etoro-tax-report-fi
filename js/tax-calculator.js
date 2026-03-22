@@ -48,12 +48,14 @@ export function calculateStockTax(closedPositions, ecbRates) {
     const totalLossesEUR      = sum(losses.map(p => p.gainLossEUR));
     const netGainLossEUR      = totalGainsEUR + totalLossesEUR;
 
-    // Pienten myyntien verovapaus: jos kaikkien myyntien yhteissumma ≤ 1 000 €,
-    // voitot ovat verovapaita ja tappiot vähennyskelvottomia.
-    const smallSalesExemption = totalSalePriceEUR <= SMALL_SALES_LIMIT;
+    // TVL 48 § ja TVL 50 § – kaksi erillistä tarkistusta:
+    //   Voitot verovapaita jos myyntihinnat yhteensä ≤ 1 000 € (TVL 48 §)
+    //   Tappiot vähennyskelvottomia jos hankintamenot yhteensä ≤ 1 000 € (TVL 50 §)
+    const gainExemption     = totalSalePriceEUR   <= SMALL_SALES_LIMIT;
+    const lossNonDeductible = totalAcquisitionEUR <= SMALL_SALES_LIMIT;
 
-    const taxableGainEUR    = smallSalesExemption ? 0 : Math.max(0, netGainLossEUR);
-    const deductibleLossEUR = smallSalesExemption ? 0 : Math.min(0, netGainLossEUR);
+    const taxableGainEUR    = gainExemption     ? 0 : Math.max(0, netGainLossEUR);
+    const deductibleLossEUR = lossNonDeductible ? 0 : Math.min(0, netGainLossEUR);
     const estimatedTaxEUR   = calculateTax(taxableGainEUR);
 
     const missingRates = positions.filter(p => p.missingEcbRate);
@@ -72,13 +74,14 @@ export function calculateStockTax(closedPositions, ecbRates) {
         netGainLossEUR:       round2(netGainLossEUR),
 
         // Verotus
-        smallSalesExemption,
+        gainExemption,
+        lossNonDeductible,
         taxableGainEUR:       round2(taxableGainEUR),
         deductibleLossEUR:    round2(deductibleLossEUR),
         estimatedTaxEUR:      round2(estimatedTaxEUR),
 
         // Huomiot
-        notes: buildNotes(smallSalesExemption, missingRates.length),
+        notes: buildNotes(gainExemption, lossNonDeductible, missingRates.length),
 
         // Yksityiskohdat per positio (liitettä varten)
         positions,
@@ -115,17 +118,18 @@ export function calculateCryptoTax(closedPositions, ecbRates) {
     const totalLossesEUR      = sum(losses.map(p => p.gainLossEUR));
     const netGainLossEUR      = totalGainsEUR + totalLossesEUR;
 
-    // Pienten myyntien verovapaus lasketaan yhdessä osakkeiden kanssa
-    // generateTaxReport() tarkistaa yhdistetyn rajan – tässä lasketaan vain krypto-osuus
-    const smallSalesExemption = totalSalePriceEUR <= SMALL_SALES_LIMIT;
+    // TVL 48 § ja TVL 50 § – kaksi erillistä tarkistusta (ks. calculateStockTax)
+    // generateTaxReport() tarkistaa yhdistetyn rajan osakkeiden kanssa
+    const gainExemption     = totalSalePriceEUR   <= SMALL_SALES_LIMIT;
+    const lossNonDeductible = totalAcquisitionEUR <= SMALL_SALES_LIMIT;
 
-    const taxableGainEUR    = smallSalesExemption ? 0 : Math.max(0, netGainLossEUR);
-    const deductibleLossEUR = smallSalesExemption ? 0 : Math.min(0, netGainLossEUR);
+    const taxableGainEUR    = gainExemption     ? 0 : Math.max(0, netGainLossEUR);
+    const deductibleLossEUR = lossNonDeductible ? 0 : Math.min(0, netGainLossEUR);
     const estimatedTaxEUR   = calculateTax(taxableGainEUR);
 
     const missingRates = positions.filter(p => p.missingEcbRate);
 
-    const notes = buildNotes(smallSalesExemption, missingRates.length);
+    const notes = buildNotes(gainExemption, lossNonDeductible, missingRates.length);
     notes.unshift(
         'Kryptot ilmoitetaan lomakkeella 9A (pääomatulo, TVL 45 §). ' +
         'Tappiot ovat vähennyskelpoisia 5 vuotta (TVL 54 §).'
@@ -140,7 +144,8 @@ export function calculateCryptoTax(closedPositions, ecbRates) {
         totalGainsEUR:        round2(totalGainsEUR),
         totalLossesEUR:       round2(totalLossesEUR),
         netGainLossEUR:       round2(netGainLossEUR),
-        smallSalesExemption,
+        gainExemption,
+        lossNonDeductible,
         taxableGainEUR:       round2(taxableGainEUR),
         deductibleLossEUR:    round2(deductibleLossEUR),
         estimatedTaxEUR:      round2(estimatedTaxEUR),
@@ -497,12 +502,16 @@ function buildCfdNotes(lossCount, missingRatesCount) {
     return notes;
 }
 
-function buildNotes(smallSalesExemption, missingRatesCount) {
+function buildNotes(gainExemption, lossNonDeductible, missingRatesCount) {
     const notes = [];
-    if (smallSalesExemption) {
+    if (gainExemption) {
         notes.push(
-            'Pienten myyntien verovapaus (TVL 48 §): kaikkien myyntien yhteissumma ≤ 1 000 €. ' +
-            'Myyntivoitot ovat verovapaita eikä tappioita voi vähentää.'
+            'Voitot verovapaita (TVL 48 §): myyntihinnat yhteensä ≤ 1 000 €.'
+        );
+    }
+    if (lossNonDeductible) {
+        notes.push(
+            'Tappiot vähennyskelvottomia (TVL 50 §): hankintamenot yhteensä ≤ 1 000 €.'
         );
     }
     if (missingRatesCount > 0) {
@@ -542,21 +551,19 @@ export function generateTaxReport(closedPositions, dividends, ecbRates) {
     const cfds      = calculateCfdTax(closedPositions, ecbRates);
     const divs      = calculateDividendTax(dividends, ecbRates);
 
-    // TVL 48 §: pienten myyntien raja koskee kaikkia luovutuksia yhteensä.
-    // Jos osakkeet + kryptot yhteensä ≤ 1 000 €, vapautus koskee molempia.
-    const combinedSalePriceEUR = stocks.totalSalePriceEUR + crypto.totalSalePriceEUR;
-    const combinedSmallSales   = combinedSalePriceEUR <= SMALL_SALES_LIMIT;
+    // TVL 48 § ja TVL 50 § koskevat kaikkia luovutuksia yhteensä (osakkeet + kryptot).
+    // Kaksi erillistä tarkistusta:
+    //   Voitot verovapaita jos myyntihinnat yhteensä ≤ 1 000 € (TVL 48 §)
+    //   Tappiot vähennyskelvottomia jos hankintamenot yhteensä ≤ 1 000 € (TVL 50 §)
+    const combinedSalePriceEUR   = stocks.totalSalePriceEUR   + crypto.totalSalePriceEUR;
+    const combinedAcquisitionEUR = stocks.totalAcquisitionEUR + crypto.totalAcquisitionEUR;
+    const combinedGainExemption     = combinedSalePriceEUR   <= SMALL_SALES_LIMIT;
+    const combinedLossNonDeductible = combinedAcquisitionEUR <= SMALL_SALES_LIMIT;
 
-    // Jos yhdistetty summa muuttaa yksittäisten laskelmien vapautuspäätöksen,
-    // korjataan verotettava tulo sen mukaan.
-    const stocksTaxable = combinedSmallSales ? 0
-        : Math.max(0, stocks.netGainLossEUR);
-    const cryptoTaxable = combinedSmallSales ? 0
-        : Math.max(0, crypto.netGainLossEUR);
-    const stocksDeductible = combinedSmallSales ? 0
-        : Math.min(0, stocks.netGainLossEUR);
-    const cryptoDeductible = combinedSmallSales ? 0
-        : Math.min(0, crypto.netGainLossEUR);
+    const stocksTaxable    = combinedGainExemption     ? 0 : Math.max(0, stocks.netGainLossEUR);
+    const cryptoTaxable    = combinedGainExemption     ? 0 : Math.max(0, crypto.netGainLossEUR);
+    const stocksDeductible = combinedLossNonDeductible ? 0 : Math.min(0, stocks.netGainLossEUR);
+    const cryptoDeductible = combinedLossNonDeductible ? 0 : Math.min(0, crypto.netGainLossEUR);
 
     // Verotettavat tulot yhteensä
     const verotettavaYhteensaEUR = round2(
@@ -583,7 +590,8 @@ export function generateTaxReport(closedPositions, dividends, ecbRates) {
 
         // ── Lomake 9A: Arvopaperien luovutusvoitot ja -tappiot ─────────────
         lomake9A: {
-            ilmoitettava:             !combinedSmallSales && (stocks.positions.length > 0),
+            ilmoitettava:             stocks.positions.length > 0 &&
+                                      (stocksTaxable > 0 || stocksDeductible < 0),
             // Täytettävät kentät
             myyntihinnatYhteensaEUR:  stocks.totalSalePriceEUR,
             hankintamenotYhteensaEUR: stocks.totalAcquisitionEUR,
@@ -594,9 +602,9 @@ export function generateTaxReport(closedPositions, dividends, ecbRates) {
             vahennyskelponenTappioEUR: round2(stocksDeductible),
             arvioistuVeroEUR:         round2(calculateTax(stocksTaxable)),
             // Syy jos ei ilmoiteta
-            eiIlmoitetaSyy:           combinedSmallSales
-                ? `Pienten myyntien verovapaus (TVL 48 §): osakkeet + kryptot yhteensä ${combinedSalePriceEUR.toFixed(2)} € ≤ 1 000 €`
-                : null,
+            eiIlmoitetaSyy:           buildSmallSalesReason(
+                combinedGainExemption, combinedLossNonDeductible,
+                combinedSalePriceEUR, combinedAcquisitionEUR),
             // Positiot liitettä varten
             positiot:                 stocks.positions,
             huomiot:                  stocks.notes,
@@ -604,7 +612,8 @@ export function generateTaxReport(closedPositions, dividends, ecbRates) {
 
         // ── Lomake 9A: Kryptovaluuttojen luovutusvoitot ja -tappiot ────────
         lomakeKrypto: {
-            ilmoitettava:             !combinedSmallSales && (crypto.positions.length > 0),
+            ilmoitettava:             crypto.positions.length > 0 &&
+                                      (cryptoTaxable > 0 || cryptoDeductible < 0),
             // Täytettävät kentät
             myyntihinnatYhteensaEUR:  crypto.totalSalePriceEUR,
             hankintamenotYhteensaEUR: crypto.totalAcquisitionEUR,
@@ -615,9 +624,11 @@ export function generateTaxReport(closedPositions, dividends, ecbRates) {
             vahennyskelponenTappioEUR: round2(cryptoDeductible),
             arvioistuVeroEUR:         round2(calculateTax(cryptoTaxable)),
             // Syy jos ei ilmoiteta
-            eiIlmoitetaSyy:           combinedSmallSales
-                ? `Pienten myyntien verovapaus (TVL 48 §): osakkeet + kryptot yhteensä ${combinedSalePriceEUR.toFixed(2)} € ≤ 1 000 €`
-                : (crypto.positions.length === 0 ? 'Ei krypto-positioita' : null),
+            eiIlmoitetaSyy:           crypto.positions.length === 0
+                ? 'Ei krypto-positioita'
+                : buildSmallSalesReason(
+                    combinedGainExemption, combinedLossNonDeductible,
+                    combinedSalePriceEUR, combinedAcquisitionEUR),
             // Positiot liitettä varten
             positiot:                 crypto.positions,
             huomiot:                  crypto.notes,
@@ -684,7 +695,7 @@ export function generateTaxReport(closedPositions, dividends, ecbRates) {
 
             // Mitä lomakkeita täytetään
             lomakkeet: buildLomakeList(stocks, crypto, cfds, divs,
-                combinedSmallSales, stocksTaxable, cryptoTaxable),
+                stocksTaxable, cryptoTaxable, stocksDeductible, cryptoDeductible),
 
             // Kaikki huomiot koottuna
             huomiot: [
@@ -710,17 +721,33 @@ function resolveVeovuosi(closedPositions, dividends) {
     return years.size > 0 ? Math.max(...[...years].map(Number)) : null;
 }
 
+function buildSmallSalesReason(gainExemption, lossNonDeductible,
+    salePriceEUR, acquisitionEUR) {
+    const parts = [];
+    if (gainExemption) {
+        parts.push(
+            `Voitot verovapaita (TVL 48 §): myyntihinnat yhteensä ${salePriceEUR.toFixed(2)} € ≤ 1 000 €`
+        );
+    }
+    if (lossNonDeductible) {
+        parts.push(
+            `Tappiot vähennyskelvottomia (TVL 50 §): hankintamenot yhteensä ${acquisitionEUR.toFixed(2)} € ≤ 1 000 €`
+        );
+    }
+    return parts.length > 0 ? parts.join('. ') : null;
+}
+
 function buildLomakeList(stocks, crypto, cfds, divs,
-    combinedSmallSales, stocksTaxable, cryptoTaxable) {
+    stocksTaxable, cryptoTaxable, stocksDeductible, cryptoDeductible) {
     const lomakkeet = [];
-    if (!combinedSmallSales && stocks.positions.length > 0) {
+    if (stocks.positions.length > 0 && (stocksTaxable > 0 || stocksDeductible < 0)) {
         lomakkeet.push({
             lomake: '9A',
             kuvaus: 'Arvopaperien luovutusvoitot ja -tappiot (osakkeet)',
             ilmoitettavaTuloEUR: round2(stocksTaxable),
         });
     }
-    if (!combinedSmallSales && crypto.positions.length > 0) {
+    if (crypto.positions.length > 0 && (cryptoTaxable > 0 || cryptoDeductible < 0)) {
         lomakkeet.push({
             lomake: '9A',
             kuvaus: 'Arvopaperien luovutusvoitot ja -tappiot (kryptot)',
