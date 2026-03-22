@@ -72,7 +72,12 @@ Myyntivoitto/tappio = Myyntihinta − hankintameno − kaupankäyntikulut
 
 ### Pienien myyntien verovapaus
 
-Jos kaikkien osakkeiden **yhteenlaskettu myyntihinta** kalenterivuoden aikana on **enintään 1 000 €**, myyntivoitto on verovapaata. Samoin alle 1 000 €:n myyntien tappiot eivät ole vähennyskelpoisia.
+Kaksi erillistä sääntöä:
+
+- **TVL 48 §:** Jos kaikkien osakkeiden + kryptojen **yhteenlaskettu myyntihinta** kalenterivuoden aikana on **enintään 1 000 €**, myyntivoitto on verovapaata.
+- **TVL 50 §:** Jos kaikkien osakkeiden + kryptojen **yhteenlasketut hankintamenot** kalenterivuoden aikana ovat **enintään 1 000 €**, tappiot eivät ole vähennyskelpoisia.
+
+Nämä ovat **kaksi erillistä kynnysarvoa** – myyntihinnat voivat olla alle rajan (voitot verovapaita) samaan aikaan kun hankintamenot ylittävät rajan (tappiot silti vähennyskelpoisia).
 
 ### FIFO-periaate
 
@@ -82,7 +87,7 @@ Arvo-osuusjärjestelmässä olevat osakkeet katsotaan myydyiksi siinä järjesty
 
 - Myyntitappiot vähennetään ensin myyntivoitoista, sitten muista pääomatuloista
 - Jos tappioita ei voida vähentää verovuonna, ne siirretään **seuraavalle 5 vuodelle**
-- Alle 1 000 €:n myynneistä syntyneitä tappioita ei voi vähentää
+- Tappioita ei voi vähentää jos hankintamenot yhteensä ≤ 1 000 € (TVL 50 §)
 
 ### Lomake ja ilmoittaminen
 

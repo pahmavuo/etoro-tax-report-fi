@@ -36,7 +36,8 @@ Katso tarkempi ohjeistus: `docs/verotus-ohjeet.md`
 - **FIFO-periaate** (ensimmäisenä ostettu myydään ensin)
 - Lomake **9A**
 - Verokanta: 30 % (≤ 30 000 €) / 34 % (> 30 000 €)
-- Alle 1 000 €:n kokonaismyynnit: voitot verovapaita, tappiot vähennyskelvoittomia
+- **TVL 48 §:** jos myyntihinnat yhteensä ≤ 1 000 €, voitot verovapaita
+- **TVL 50 §:** jos hankintamenot yhteensä ≤ 1 000 €, tappiot vähennyskelvottomia (erillinen kynnys!)
 - Tappiot vähennetään voitoista ja muista pääomatuloista; siirto 5 vuodelle
 
 ### Osingot
