@@ -2,6 +2,13 @@ import { parseAccountStatement }               from './parser.js';
 import { generateTaxReport }                  from './tax-calculator.js';
 import { fetchEcbRates, getRequiredDateRange } from './ecb-rates.js';
 
+// ── Näytä ohje automaattisesti ensimmäisellä käynnillä ───────────────────
+if (!localStorage.getItem('ohjeNaytetty')) {
+  const modal = new bootstrap.Modal(document.getElementById('tietoja-modal'));
+  modal.show();
+  localStorage.setItem('ohjeNaytetty', '1');
+}
+
 // ── Tiedoston valinta ────────────────────────────────────────────────────
 const input    = document.getElementById('file-input');
 const dropZone = document.getElementById('drop-zone');
